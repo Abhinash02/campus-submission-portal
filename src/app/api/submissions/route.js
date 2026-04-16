@@ -2013,289 +2013,383 @@
 // }
 
 
-import { NextResponse } from 'next/server';
-import connectDB from '@/mongodb/db';
-import Submission from '@/models/submission';
-import User from '@/models/user';
-import Student from '@/models/student';
+// import { NextResponse } from 'next/server';
+// import connectDB from '@/mongodb/db';
+// import Submission from '@/models/submission';
+// import User from '@/models/user';
+// import Student from '@/models/student';
 
-export const dynamic = 'force-dynamic';
+// export const dynamic = 'force-dynamic';
 
-// export async function GET(req) {
+// // export async function GET(req) {
+// //   try {
+// //     await connectDB();
+
+// //     const searchParams = req.nextUrl.searchParams;
+
+// //     const teacherId = searchParams.get('teacherId') || '';
+// //     const teacherLoginId = searchParams.get('teacherLoginId') || '';
+// //     const studentId = searchParams.get('studentId') || '';
+// //     const search = searchParams.get('search') || '';
+// //     const courseName = searchParams.get('courseName') || '';
+// //     const className = searchParams.get('className') || '';
+// //     const status = searchParams.get('status') || '';
+
+// //     const rawPage = Number(searchParams.get('page'));
+// //     const rawLimit = Number(searchParams.get('limit'));
+
+// //     const page = Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1;
+// //     const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? rawLimit : 5;
+
+// //     const filter = {};
+
+// //     if (teacherId) filter.teacherId = teacherId;
+// //     if (teacherLoginId) filter.teacherLoginId = teacherLoginId;
+// //     if (studentId) filter.studentId = studentId;
+// //     if (courseName) filter.courseName = courseName;
+// //     if (className) filter.className = className;
+// //     if (status) filter.status = status;
+
+// //     if (search.trim()) {
+// //       const searchRegex = { $regex: search.trim(), $options: 'i' };
+
+// //       if (teacherId || teacherLoginId) {
+// //         filter.$or = [
+// //           { studentName: searchRegex },
+// //           { studentLoginId: searchRegex },
+// //           { title: searchRegex },
+// //           { subject: searchRegex },
+// //           { className: searchRegex },
+// //           { courseName: searchRegex },
+// //         ];
+// //       } else if (studentId) {
+// //         filter.$or = [
+// //           { title: searchRegex },
+// //           { subject: searchRegex },
+// //           { teacherName: searchRegex },
+// //           { teacherLoginId: searchRegex },
+// //           { className: searchRegex },
+// //           { courseName: searchRegex },
+// //         ];
+// //       } else {
+// //         filter.$or = [
+// //           { studentName: searchRegex },
+// //           { studentLoginId: searchRegex },
+// //           { teacherName: searchRegex },
+// //           { teacherLoginId: searchRegex },
+// //           { title: searchRegex },
+// //           { subject: searchRegex },
+// //           { className: searchRegex },
+// //           { courseName: searchRegex },
+// //           { section: searchRegex },
+// //         ];
+// //       }
+// //     }
+
+// //     const total = await Submission.countDocuments(filter);
+// //     const totalPages = Math.max(1, Math.ceil(total / limit));
+// //     const currentPage = Math.min(page, totalPages);
+// //     const skip = (currentPage - 1) * limit;
+
+// //     const submissions = await Submission.find(filter)
+// //       .sort({ createdAt: -1 })
+// //       .skip(skip)
+// //       .limit(limit)
+// //       .lean();
+
+// //     let teacher = null;
+// //     if (teacherId) {
+// //       teacher = await User.findById(teacherId).select('-password').lean();
+// //     }
+
+// //     const distinctFilter = {};
+
+// //     if (teacherId) distinctFilter.teacherId = teacherId;
+// //     if (teacherLoginId) distinctFilter.teacherLoginId = teacherLoginId;
+// //     if (studentId) distinctFilter.studentId = studentId;
+
+// //     const [courseOptions, classOptions] = await Promise.all([
+// //       Submission.distinct('courseName', {
+// //         ...distinctFilter,
+// //         courseName: { $nin: ['', null] },
+// //       }),
+// //       Submission.distinct('className', {
+// //         ...distinctFilter,
+// //         className: { $nin: ['', null] },
+// //       }),
+// //     ]);
+
+// //     return NextResponse.json({
+// //       success: true,
+// //       submissions,
+// //       teacher,
+// //       courseOptions: courseOptions.sort(),
+// //       classOptions: classOptions.sort(),
+// //       pagination: {
+// //         total,
+// //         totalPages,
+// //         currentPage,
+// //         limit,
+// //       },
+// //     });
+// //   } catch (error) {
+// //     console.error('GET SUBMISSIONS ERROR:', error);
+
+// //     return NextResponse.json(
+// //       {
+// //         success: false,
+// //         message: 'Failed to fetch submissions',
+// //         submissions: [],
+// //         teacher: null,
+// //         courseOptions: [],
+// //         classOptions: [],
+// //         pagination: {
+// //           total: 0,
+// //           totalPages: 1,
+// //           currentPage: 1,
+// //           limit: 5,
+// //         },
+// //       },
+// //       { status: 500 }
+// //     );
+// //   }
+// // }
+
+
+// export async function GET() {
 //   try {
 //     await connectDB();
 
-//     const searchParams = req.nextUrl.searchParams;
-
-//     const teacherId = searchParams.get('teacherId') || '';
-//     const teacherLoginId = searchParams.get('teacherLoginId') || '';
-//     const studentId = searchParams.get('studentId') || '';
-//     const search = searchParams.get('search') || '';
-//     const courseName = searchParams.get('courseName') || '';
-//     const className = searchParams.get('className') || '';
-//     const status = searchParams.get('status') || '';
-
-//     const rawPage = Number(searchParams.get('page'));
-//     const rawLimit = Number(searchParams.get('limit'));
-
-//     const page = Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1;
-//     const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? rawLimit : 5;
-
-//     const filter = {};
-
-//     if (teacherId) filter.teacherId = teacherId;
-//     if (teacherLoginId) filter.teacherLoginId = teacherLoginId;
-//     if (studentId) filter.studentId = studentId;
-//     if (courseName) filter.courseName = courseName;
-//     if (className) filter.className = className;
-//     if (status) filter.status = status;
-
-//     if (search.trim()) {
-//       const searchRegex = { $regex: search.trim(), $options: 'i' };
-
-//       if (teacherId || teacherLoginId) {
-//         filter.$or = [
-//           { studentName: searchRegex },
-//           { studentLoginId: searchRegex },
-//           { title: searchRegex },
-//           { subject: searchRegex },
-//           { className: searchRegex },
-//           { courseName: searchRegex },
-//         ];
-//       } else if (studentId) {
-//         filter.$or = [
-//           { title: searchRegex },
-//           { subject: searchRegex },
-//           { teacherName: searchRegex },
-//           { teacherLoginId: searchRegex },
-//           { className: searchRegex },
-//           { courseName: searchRegex },
-//         ];
-//       } else {
-//         filter.$or = [
-//           { studentName: searchRegex },
-//           { studentLoginId: searchRegex },
-//           { teacherName: searchRegex },
-//           { teacherLoginId: searchRegex },
-//           { title: searchRegex },
-//           { subject: searchRegex },
-//           { className: searchRegex },
-//           { courseName: searchRegex },
-//           { section: searchRegex },
-//         ];
-//       }
-//     }
-
-//     const total = await Submission.countDocuments(filter);
-//     const totalPages = Math.max(1, Math.ceil(total / limit));
-//     const currentPage = Math.min(page, totalPages);
-//     const skip = (currentPage - 1) * limit;
-
-//     const submissions = await Submission.find(filter)
+//     const submissions = await Submission.find({})
 //       .sort({ createdAt: -1 })
-//       .skip(skip)
-//       .limit(limit)
-//       .lean();
+//       .populate('studentId', 'name className course section loginId')
+//       .populate('teacherId', 'name loginId subject');
 
-//     let teacher = null;
-//     if (teacherId) {
-//       teacher = await User.findById(teacherId).select('-password').lean();
-//     }
-
-//     const distinctFilter = {};
-
-//     if (teacherId) distinctFilter.teacherId = teacherId;
-//     if (teacherLoginId) distinctFilter.teacherLoginId = teacherLoginId;
-//     if (studentId) distinctFilter.studentId = studentId;
-
-//     const [courseOptions, classOptions] = await Promise.all([
-//       Submission.distinct('courseName', {
-//         ...distinctFilter,
-//         courseName: { $nin: ['', null] },
-//       }),
-//       Submission.distinct('className', {
-//         ...distinctFilter,
-//         className: { $nin: ['', null] },
-//       }),
-//     ]);
+//     const formatted = submissions.map((item) => ({
+//       _id: item._id,
+//       title: item.title || '',
+//       studentName: item.studentName || item.studentId?.name || '',
+//       teacherName: item.teacherName || item.teacherId?.name || '',
+//       teacherLoginId: item.teacherLoginId || item.teacherId?.loginId || '',
+//       className:
+//         item.className ||
+//         item.studentId?.className ||
+//         '',
+//       course: item.course || item.studentId?.course || '',
+//       section: item.section || item.studentId?.section || '',
+//       status: item.status || 'Submitted',
+//       marks: item.marks ?? null,
+//       createdAt: item.createdAt,
+//     }));
 
 //     return NextResponse.json({
 //       success: true,
-//       submissions,
-//       teacher,
-//       courseOptions: courseOptions.sort(),
-//       classOptions: classOptions.sort(),
-//       pagination: {
-//         total,
-//         totalPages,
-//         currentPage,
-//         limit,
-//       },
+//       submissions: formatted,
 //     });
 //   } catch (error) {
 //     console.error('GET SUBMISSIONS ERROR:', error);
-
 //     return NextResponse.json(
 //       {
 //         success: false,
 //         message: 'Failed to fetch submissions',
 //         submissions: [],
-//         teacher: null,
-//         courseOptions: [],
-//         classOptions: [],
-//         pagination: {
-//           total: 0,
-//           totalPages: 1,
-//           currentPage: 1,
-//           limit: 5,
-//         },
 //       },
 //       { status: 500 }
 //     );
 //   }
 // }
 
+// export async function POST(req) {
+//   try {
+//     await connectDB();
 
-export async function GET() {
+//     const body = await req.json();
+
+//     const studentId = String(body.studentId || '').trim();
+//     const studentName = String(body.studentName || '').trim();
+//     const studentLoginId = String(body.studentLoginId || '').trim();
+//     const teacherId = String(body.teacherId || '').trim();
+//     const teacherName = String(body.teacherName || '').trim();
+//     const teacherLoginId = String(body.teacherLoginId || '').trim();
+//     const title = String(body.title || '').trim();
+//     const subject = String(body.subject || '').trim();
+//     const description = String(body.description || '').trim();
+//     const fileName = String(body.fileName || '').trim();
+
+//     let fileUrl = String(body.fileUrl || '').trim();
+//     let className = String(body.className || '').trim();
+//     let courseName = String(body.courseName || '').trim();
+//     let section = String(body.section || '').trim();
+
+//     if (!studentId || !studentName || !studentLoginId || !title || !subject) {
+//       return NextResponse.json(
+//         {
+//           success: false,
+//           message: 'Student, title, and subject are required',
+//         },
+//         { status: 400 }
+//       );
+//     }
+
+//     const user = await User.findById(studentId).lean();
+//     const studentProfile = await Student.findOne({ userId: studentId }).lean();
+
+//     if (!className) {
+//       className =
+//         studentProfile?.className?.trim() ||
+//         user?.className?.trim() ||
+//         '';
+//     }
+
+//     if (!courseName) {
+//       courseName =
+//         studentProfile?.course?.trim() ||
+//         user?.course?.trim() ||
+//         'Not Specified';
+//     }
+
+//     if (!section) {
+//       section =
+//         studentProfile?.section?.trim() ||
+//         user?.section?.trim() ||
+//         '';
+//     }
+
+//     if (!fileUrl && fileName) {
+//       fileUrl = `/uploads/${fileName}`;
+//     }
+
+//     const submission = await Submission.create({
+//       studentId,
+//       studentName,
+//       studentLoginId,
+//       teacherId: teacherId || null,
+//       teacherName,
+//       teacherLoginId,
+//       title,
+//       subject,
+//       description,
+//       fileName,
+//       fileUrl,
+//       className,
+//       courseName,
+//       section,
+//       status: 'Submitted',
+//       marks: 0,
+//       feedback: '',
+//       reviewedBy: '',
+//     });
+
+//     return NextResponse.json(
+//       {
+//         success: true,
+//         message: 'Submission created successfully',
+//         submission,
+//       },
+//       { status: 201 }
+//     );
+//   } catch (error) {
+//     console.error('POST SUBMISSION ERROR:', error);
+
+//     return NextResponse.json(
+//       {
+//         success: false,
+//         message: 'Failed to create submission',
+//         error: error.message,
+//       },
+//       { status: 500 }
+//     );
+//   }
+// }
+
+import { NextResponse } from 'next/server';
+import connectDB from '@/mongodb/db';
+import User from '@/models/user';
+import Submission from '@/models/submission';
+
+export const dynamic = 'force-dynamic';
+
+export async function GET(req) {
   try {
     await connectDB();
 
-    const submissions = await Submission.find({})
+    const { searchParams } = new URL(req.url);
+
+    const teacherId = String(searchParams.get('teacherId') || '').trim();
+    const search = String(searchParams.get('search') || '').trim();
+    const courseName = String(searchParams.get('courseName') || '').trim();
+    const status = String(searchParams.get('status') || '').trim();
+    const page = Math.max(parseInt(searchParams.get('page') || '1', 10), 1);
+    const limit = Math.max(parseInt(searchParams.get('limit') || '5', 10), 1);
+    const skip = (page - 1) * limit;
+
+    if (!teacherId) {
+      return NextResponse.json(
+        { success: false, message: 'teacherId is required' },
+        { status: 400 }
+      );
+    }
+
+    const teacher = await User.findById(teacherId).select('-password').lean();
+
+    if (!teacher || teacher.role !== 'TEACHER') {
+      return NextResponse.json(
+        { success: false, message: 'Teacher not found' },
+        { status: 404 }
+      );
+    }
+
+    const query = {
+      teacherId,
+    };
+
+    if (courseName) {
+      query.courseName = courseName;
+    }
+
+    if (status) {
+      query.status = status;
+    }
+
+    if (search) {
+      query.$or = [
+        { studentName: { $regex: search, $options: 'i' } },
+        { studentLoginId: { $regex: search, $options: 'i' } },
+        { title: { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    const total = await Submission.countDocuments(query);
+
+    const submissions = await Submission.find(query)
       .sort({ createdAt: -1 })
-      .populate('studentId', 'name className course section loginId')
-      .populate('teacherId', 'name loginId subject');
+      .skip(skip)
+      .limit(limit)
+      .lean();
 
-    const formatted = submissions.map((item) => ({
-      _id: item._id,
-      title: item.title || '',
-      studentName: item.studentName || item.studentId?.name || '',
-      teacherName: item.teacherName || item.teacherId?.name || '',
-      teacherLoginId: item.teacherLoginId || item.teacherId?.loginId || '',
-      className:
-        item.className ||
-        item.studentId?.className ||
-        '',
-      course: item.course || item.studentId?.course || '',
-      section: item.section || item.studentId?.section || '',
-      status: item.status || 'Submitted',
-      marks: item.marks ?? null,
-      createdAt: item.createdAt,
-    }));
+    const courseOptionsAgg = await Submission.distinct('courseName', { teacherId });
+    const courseOptions = courseOptionsAgg.filter(Boolean).sort();
 
-    return NextResponse.json({
-      success: true,
-      submissions: formatted,
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        teacher,
+        submissions,
+        courseOptions,
+        pagination: {
+          total,
+          totalPages: Math.max(Math.ceil(total / limit), 1),
+          currentPage: page,
+        },
+      },
+      { status: 200 }
+    );
   } catch (error) {
     console.error('GET SUBMISSIONS ERROR:', error);
     return NextResponse.json(
       {
         success: false,
         message: 'Failed to fetch submissions',
-        submissions: [],
-      },
-      { status: 500 }
-    );
-  }
-}
-
-export async function POST(req) {
-  try {
-    await connectDB();
-
-    const body = await req.json();
-
-    const studentId = String(body.studentId || '').trim();
-    const studentName = String(body.studentName || '').trim();
-    const studentLoginId = String(body.studentLoginId || '').trim();
-    const teacherId = String(body.teacherId || '').trim();
-    const teacherName = String(body.teacherName || '').trim();
-    const teacherLoginId = String(body.teacherLoginId || '').trim();
-    const title = String(body.title || '').trim();
-    const subject = String(body.subject || '').trim();
-    const description = String(body.description || '').trim();
-    const fileName = String(body.fileName || '').trim();
-
-    let fileUrl = String(body.fileUrl || '').trim();
-    let className = String(body.className || '').trim();
-    let courseName = String(body.courseName || '').trim();
-    let section = String(body.section || '').trim();
-
-    if (!studentId || !studentName || !studentLoginId || !title || !subject) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: 'Student, title, and subject are required',
-        },
-        { status: 400 }
-      );
-    }
-
-    const user = await User.findById(studentId).lean();
-    const studentProfile = await Student.findOne({ userId: studentId }).lean();
-
-    if (!className) {
-      className =
-        studentProfile?.className?.trim() ||
-        user?.className?.trim() ||
-        '';
-    }
-
-    if (!courseName) {
-      courseName =
-        studentProfile?.course?.trim() ||
-        user?.course?.trim() ||
-        'Not Specified';
-    }
-
-    if (!section) {
-      section =
-        studentProfile?.section?.trim() ||
-        user?.section?.trim() ||
-        '';
-    }
-
-    if (!fileUrl && fileName) {
-      fileUrl = `/uploads/${fileName}`;
-    }
-
-    const submission = await Submission.create({
-      studentId,
-      studentName,
-      studentLoginId,
-      teacherId: teacherId || null,
-      teacherName,
-      teacherLoginId,
-      title,
-      subject,
-      description,
-      fileName,
-      fileUrl,
-      className,
-      courseName,
-      section,
-      status: 'Submitted',
-      marks: 0,
-      feedback: '',
-      reviewedBy: '',
-    });
-
-    return NextResponse.json(
-      {
-        success: true,
-        message: 'Submission created successfully',
-        submission,
-      },
-      { status: 201 }
-    );
-  } catch (error) {
-    console.error('POST SUBMISSION ERROR:', error);
-
-    return NextResponse.json(
-      {
-        success: false,
-        message: 'Failed to create submission',
-        error: error.message,
       },
       { status: 500 }
     );

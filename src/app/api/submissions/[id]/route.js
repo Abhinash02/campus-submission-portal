@@ -712,132 +712,205 @@
 
 
 
+// import { NextResponse } from 'next/server';
+// import connectDB from '@/mongodb/db';
+// import Submission from '@/models/submission';
+
+// export const dynamic = 'force-dynamic';
+
+// export async function GET(req, { params }) {
+//   try {
+//     await connectDB();
+
+//     const { id } = params;
+
+//     const submission = await Submission.findById(id).lean();
+
+//     if (!submission) {
+//       return NextResponse.json(
+//         {
+//           success: false,
+//           message: 'Submission not found',
+//         },
+//         { status: 404 }
+//       );
+//     }
+
+//     return NextResponse.json({
+//       success: true,
+//       submission,
+//     });
+//   } catch (error) {
+//     console.error('GET SUBMISSION BY ID ERROR:', error);
+//     return NextResponse.json(
+//       {
+//         success: false,
+//         message: 'Failed to fetch submission',
+//       },
+//       { status: 500 }
+//     );
+//   }
+// }
+
+// export async function PUT(req, { params }) {
+//   try {
+//     await connectDB();
+
+//     const { id } = params;
+//     const body = await req.json();
+
+//     const {
+//       teacherId,
+//       status,
+//       marks,
+//       feedback,
+//       reviewedBy,
+//     } = body;
+
+//     const existingSubmission = await Submission.findById(id);
+
+//     if (!existingSubmission) {
+//       return NextResponse.json(
+//         {
+//           success: false,
+//           message: 'Submission not found',
+//         },
+//         { status: 404 }
+//       );
+//     }
+
+//     if (!teacherId) {
+//       return NextResponse.json(
+//         {
+//           success: false,
+//           message: 'Teacher ID is required',
+//         },
+//         { status: 400 }
+//       );
+//     }
+
+//     if (
+//       existingSubmission.teacherId?.toString() !== teacherId?.toString()
+//     ) {
+//       return NextResponse.json(
+//         {
+//           success: false,
+//           message: 'You are not allowed to update this submission',
+//         },
+//         { status: 403 }
+//       );
+//     }
+
+//     const allowedStatuses = ['Submitted', 'Under Review', 'Checked'];
+
+//     if (status && !allowedStatuses.includes(status)) {
+//       return NextResponse.json(
+//         {
+//           success: false,
+//           message: 'Invalid status value',
+//         },
+//         { status: 400 }
+//       );
+//     }
+
+//     const parsedMarks = Number(marks);
+
+//     if (marks !== undefined && (Number.isNaN(parsedMarks) || parsedMarks < 0 || parsedMarks > 100)) {
+//       return NextResponse.json(
+//         {
+//           success: false,
+//           message: 'Marks must be between 0 and 100',
+//         },
+//         { status: 400 }
+//       );
+//     }
+
+//     existingSubmission.status = status ?? existingSubmission.status;
+//     existingSubmission.marks = marks !== undefined ? parsedMarks : existingSubmission.marks;
+//     existingSubmission.feedback = feedback ?? existingSubmission.feedback;
+//     existingSubmission.reviewedBy = reviewedBy ?? existingSubmission.reviewedBy;
+//     existingSubmission.reviewedAt = new Date();
+
+//     await existingSubmission.save();
+
+//     return NextResponse.json({
+//       success: true,
+//       message: 'Submission updated successfully',
+//       assignment: existingSubmission,
+//     });
+//   } catch (error) {
+//     console.error('UPDATE SUBMISSION ERROR:', error);
+//     return NextResponse.json(
+//       {
+//         success: false,
+//         message: 'Failed to update submission',
+//       },
+//       { status: 500 }
+//     );
+//   }
+// }
+
 import { NextResponse } from 'next/server';
 import connectDB from '@/mongodb/db';
 import Submission from '@/models/submission';
-
-export const dynamic = 'force-dynamic';
-
-export async function GET(req, { params }) {
-  try {
-    await connectDB();
-
-    const { id } = params;
-
-    const submission = await Submission.findById(id).lean();
-
-    if (!submission) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: 'Submission not found',
-        },
-        { status: 404 }
-      );
-    }
-
-    return NextResponse.json({
-      success: true,
-      submission,
-    });
-  } catch (error) {
-    console.error('GET SUBMISSION BY ID ERROR:', error);
-    return NextResponse.json(
-      {
-        success: false,
-        message: 'Failed to fetch submission',
-      },
-      { status: 500 }
-    );
-  }
-}
+import User from '@/models/user';
 
 export async function PUT(req, { params }) {
   try {
     await connectDB();
 
-    const { id } = params;
     const body = await req.json();
 
-    const {
-      teacherId,
-      status,
-      marks,
-      feedback,
-      reviewedBy,
-    } = body;
-
-    const existingSubmission = await Submission.findById(id);
-
-    if (!existingSubmission) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: 'Submission not found',
-        },
-        { status: 404 }
-      );
-    }
+    const teacherId = String(body.teacherId || '').trim();
+    const status = String(body.status || '').trim();
+    const feedback = String(body.feedback || '').trim();
+    const reviewedBy = String(body.reviewedBy || '').trim();
+    const marks = Number(body.marks ?? 0);
 
     if (!teacherId) {
       return NextResponse.json(
-        {
-          success: false,
-          message: 'Teacher ID is required',
-        },
+        { success: false, message: 'teacherId is required' },
         { status: 400 }
       );
     }
 
-    if (
-      existingSubmission.teacherId?.toString() !== teacherId?.toString()
-    ) {
+    const teacher = await User.findById(teacherId).lean();
+    if (!teacher || teacher.role !== 'TEACHER') {
       return NextResponse.json(
-        {
-          success: false,
-          message: 'You are not allowed to update this submission',
-        },
+        { success: false, message: 'Invalid teacher' },
         { status: 403 }
       );
     }
 
-    const allowedStatuses = ['Submitted', 'Under Review', 'Checked'];
-
-    if (status && !allowedStatuses.includes(status)) {
+    const submission = await Submission.findById(params.id);
+    if (!submission) {
       return NextResponse.json(
-        {
-          success: false,
-          message: 'Invalid status value',
-        },
-        { status: 400 }
+        { success: false, message: 'Submission not found' },
+        { status: 404 }
       );
     }
 
-    const parsedMarks = Number(marks);
-
-    if (marks !== undefined && (Number.isNaN(parsedMarks) || parsedMarks < 0 || parsedMarks > 100)) {
+    if (String(submission.teacherId || '') !== teacherId) {
       return NextResponse.json(
-        {
-          success: false,
-          message: 'Marks must be between 0 and 100',
-        },
-        { status: 400 }
+        { success: false, message: 'You can only review your own submissions' },
+        { status: 403 }
       );
     }
 
-    existingSubmission.status = status ?? existingSubmission.status;
-    existingSubmission.marks = marks !== undefined ? parsedMarks : existingSubmission.marks;
-    existingSubmission.feedback = feedback ?? existingSubmission.feedback;
-    existingSubmission.reviewedBy = reviewedBy ?? existingSubmission.reviewedBy;
-    existingSubmission.reviewedAt = new Date();
+    submission.status = status || submission.status;
+    submission.marks = Math.max(0, Math.min(100, marks));
+    submission.feedback = feedback;
+    submission.reviewedBy = reviewedBy || teacher.name || '';
 
-    await existingSubmission.save();
+    await submission.save();
 
-    return NextResponse.json({
-      success: true,
-      message: 'Submission updated successfully',
-      assignment: existingSubmission,
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        assignment: submission,
+      },
+      { status: 200 }
+    );
   } catch (error) {
     console.error('UPDATE SUBMISSION ERROR:', error);
     return NextResponse.json(
