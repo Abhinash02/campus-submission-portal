@@ -34,3 +34,33 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+
+
+# Student Assignment Portal
+
+## Setup
+
+1. Copy `.env.example` to `.env`
+2. Install dependencies:
+   npm install
+3. Generate Prisma client:
+   npm run prisma:generate
+4. Run migration:
+   npm run prisma:migrate
+5. Seed demo data:
+   npm run seed
+6. Start dev server:
+   npm run dev
+
+## Demo login
+- Admin: `admin` / `123456`
+- Teacher: `teacher1` / `123456`
+- Student: `101` / `123456`
+
+## Features
+- Admin can add teachers and students
+- Student can submit assignment to a selected teacher
+- Teacher sees submissions and notifications
+- Teacher can evaluate assignments with marks and feedback
+- Student can see submission status and marks
