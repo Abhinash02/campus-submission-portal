@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { mkdir, writeFile } from 'fs/promises';
 import path from 'path';
