@@ -11,6 +11,7 @@
   "dependencies": {
     "@lottiefiles/dotlottie-react": "^0.19.0",
     "bcryptjs": "^2.4.3",
+    "goober": "^2.1.18",
     "mongoose": "^9.4.1",
     "next": "14.2.3",
     "react": "^18",
