@@ -1,21 +1,3 @@
-// import mongoose from 'mongoose'
-
-// const studentSchema = new mongoose.Schema({
-//   className: {
-//   type: String,
-//   required: true,
-//   trim: true
-// },
-//   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-//   rollNumber: { type: String, required: true, unique: true },
-//   className: { type: String, required: true },
-//   section: { type: String, required: true },
-//   createdAt: { type: Date, default: Date.now }
-// })
-
-// export default mongoose.models.Student || mongoose.model('Student', studentSchema)
-
-
 // import mongoose from 'mongoose';
 
 // const studentSchema = new mongoose.Schema(

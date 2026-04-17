@@ -1,6 +1,9 @@
+
 // import { NextResponse } from 'next/server';
 // import connectDB from '@/mongodb/db';
 // import User from '@/models/user';
+// import Student from '@/models/student';
+// import Teacher from '@/models/teacher';
 
 // export const dynamic = 'force-dynamic';
 
@@ -75,12 +78,33 @@
 //       password,
 //       role,
 //       email,
-//       course,
-//       className,
-//       section,
-//       subject,
+//       course: role === 'STUDENT' ? course : '',
+//       className: role === 'STUDENT' ? className : '',
+//       section: role === 'STUDENT' ? section : '',
+//       subject: role === 'TEACHER' ? subject : '',
 //       createdBy,
 //     });
+
+//     if (role === 'STUDENT') {
+//       await Student.create({
+//         userId: user._id,
+//         studentName: name,
+//         course,
+//         className,
+//         section,
+//       });
+//     }
+
+//     if (role === 'TEACHER') {
+//       await Teacher.create({
+//         userId: user._id,
+//         teacherName: name,
+//         subject,
+//         course: '',
+//         className: '',
+//         section: '',
+//       });
+//     }
 
 //     const safeUser = await User.findById(user._id).select('-password').lean();
 
@@ -92,21 +116,19 @@
 //       },
 //       { status: 201 }
 //     );
-//   } catch (error) {
-//     console.error('CREATE USER ERROR:', error);
-//     return NextResponse.json(
-//       { success: false, message: 'Failed to create user' },
-//       { status: 500 }
-//     );
-//   }
+// } catch (error) {
+//   console.error('CREATE USER ERROR FULL:', error);
+//   return NextResponse.json(
+//     { success: false, message: error?.message || 'Failed to create user' },
+//     { status: 500 }
+//   );
+// }
 // }
 
 
 import { NextResponse } from 'next/server';
 import connectDB from '@/mongodb/db';
 import User from '@/models/user';
-import Student from '@/models/student';
-import Teacher from '@/models/teacher';
 
 export const dynamic = 'force-dynamic';
 
@@ -119,7 +141,10 @@ export async function GET() {
       .sort({ createdAt: -1 })
       .lean();
 
-    return NextResponse.json(users, { status: 200 });
+    return NextResponse.json(
+      { success: true, users },
+      { status: 200 }
+    );
   } catch (error) {
     console.error('GET USERS ERROR:', error);
     return NextResponse.json(
@@ -148,7 +173,14 @@ export async function POST(req) {
 
     if (!name || !loginId || !password || !role) {
       return NextResponse.json(
-        { success: false, message: 'Name, loginId, password and role are required' },
+        { success: false, message: 'Name, Login ID, password and role are required' },
+        { status: 400 }
+      );
+    }
+
+    if (!['ADMIN', 'TEACHER', 'STUDENT'].includes(role)) {
+      return NextResponse.json(
+        { success: false, message: 'Invalid role selected' },
         { status: 400 }
       );
     }
@@ -188,42 +220,29 @@ export async function POST(req) {
       createdBy,
     });
 
-    if (role === 'STUDENT') {
-      await Student.create({
-        userId: user._id,
-        studentName: name,
-        course,
-        className,
-        section,
-      });
-    }
-
-    if (role === 'TEACHER') {
-      await Teacher.create({
-        userId: user._id,
-        teacherName: name,
-        subject,
-        course: '',
-        className: '',
-        section: '',
-      });
-    }
-
     const safeUser = await User.findById(user._id).select('-password').lean();
 
     return NextResponse.json(
       {
         success: true,
-        message: 'User created successfully',
+        message: `${role} created successfully`,
         user: safeUser,
       },
       { status: 201 }
     );
-} catch (error) {
-  console.error('CREATE USER ERROR FULL:', error);
-  return NextResponse.json(
-    { success: false, message: error?.message || 'Failed to create user' },
-    { status: 500 }
-  );
-}
+  } catch (error) {
+    console.error('CREATE USER ERROR:', error);
+
+    if (error?.code === 11000) {
+      return NextResponse.json(
+        { success: false, message: 'Login ID already exists' },
+        { status: 409 }
+      );
+    }
+
+    return NextResponse.json(
+      { success: false, message: error?.message || 'Failed to create user' },
+      { status: 500 }
+    );
+  }
 }
