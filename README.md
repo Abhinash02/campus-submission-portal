@@ -1,4 +1,7 @@
 <<<<<<< HEAD
+# campus-submission-portal
+Full-stack MERN application for managing student assignments, teacher reviews, and submission tracking. Includes role-based login, file uploads, searchable submissions, pagination, marks update, feedback, and PDF download support. Built with React, Node.js, Express, MongoDB, and Next.js for smooth workflow management.
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
 
 ## Getting Started
@@ -66,6 +69,4 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 - Teacher can evaluate assignments with marks and feedback
 - Student can see submission status and marks
 =======
-# campus-submission-portal
-Full-stack MERN application for managing student assignments, teacher reviews, and submission tracking. Includes role-based login, file uploads, searchable submissions, pagination, marks update, feedback, and PDF download support. Built with React, Node.js, Express, MongoDB, and Next.js for smooth workflow management.
->>>>>>> a44a4f78c7c15ce9a4ef098838d51d29520ecedb
+
