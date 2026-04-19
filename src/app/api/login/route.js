@@ -134,7 +134,8 @@ export async function POST(req) {
       );
     }
 
-    const user = await User.findOne({ loginId });
+    // const user = await User.findOne({ loginId });
+    const user = await User.findOne({ loginId }).select('+password');
 
     if (!user) {
       return NextResponse.json(

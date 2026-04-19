@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@lottiefiles/dotlottie-react": "^0.19.0",
+    "@vercel/analytics": "^2.0.1",
     "bcryptjs": "^2.4.3",
     "goober": "^2.1.18",
     "mongoose": "^9.4.1",

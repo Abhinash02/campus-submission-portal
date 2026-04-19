@@ -14,7 +14,7 @@ export async function GET() {
     const admin = await User.create({
       name: 'Admin',
       loginId: 'admin',
-      password: hashedPassword,
+      password: 123456,
       role: 'ADMIN',
       email: 'admin@gmail.com',
     });

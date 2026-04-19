@@ -18,7 +18,8 @@ export async function POST(req) {
       );
     }
 
-    const user = await User.findOne({ loginId });
+    // const user = await User.findOne({ loginId });
+    const user = await User.findOne({ loginId }).select('+password');
 
     if (!user) {
       return NextResponse.json(
@@ -26,6 +27,13 @@ export async function POST(req) {
         { status: 401 }
       );
     }
+
+    if (!user.password) {
+  return NextResponse.json(
+    { success: false, message: 'Stored password not found' },
+    { status: 401 }
+  );
+}
 
     const isMatch = await bcrypt.compare(password, user.password);
 
