@@ -32,7 +32,7 @@ export default function AdminLayout({ children }) {
 
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-slate-100 via-blue-50 to-indigo-100">
-      <Sidebar title="Admin Panel" links={links} />
+      <Sidebar title="Admin" links={links} accent="violet" />
 
       <main className="flex-1 overflow-auto p-6 md:p-8">
         <div className="mb-6 rounded-3xl bg-white/70 backdrop-blur-md border border-white/50 shadow-lg px-6 py-5">

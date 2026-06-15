@@ -68,6 +68,9 @@ import { NextResponse } from 'next/server';
 import connectDB from '@/mongodb/db';
 import User from '@/models/user';
 import Submission from '@/models/submission';
+import Assignment from '@/models/assignment';
+import Test from '@/models/test';
+import TestAttempt from '@/models/testAttempt';
 
 export const dynamic = 'force-dynamic';
 
@@ -98,9 +101,15 @@ export async function GET() {
       studentsByCourse[item._id] = item.count;
     });
 
-    const totalTeachers = await User.countDocuments({ role: 'TEACHER' });
-    const totalStudents = await User.countDocuments({ role: 'STUDENT' });
-    const totalSubmissions = await Submission.countDocuments();
+    const [totalTeachers, totalStudents, totalSubmissions, totalAssignments, totalTests, totalTestAttempts] =
+      await Promise.all([
+        User.countDocuments({ role: 'TEACHER' }),
+        User.countDocuments({ role: 'STUDENT' }),
+        Submission.countDocuments(),
+        Assignment.countDocuments({ isActive: true }),
+        Test.countDocuments({ isActive: true }),
+        TestAttempt.countDocuments(),
+      ]);
 
     return NextResponse.json(
       {
@@ -109,6 +118,9 @@ export async function GET() {
         totalTeachers,
         totalStudents,
         totalSubmissions,
+        totalAssignments,
+        totalTests,
+        totalTestAttempts,
       },
       { status: 200 }
     );

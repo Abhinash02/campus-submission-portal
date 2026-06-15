@@ -607,6 +607,9 @@ export default function AdminPage() {
     totalTeachers: 0,
     totalStudents: 0,
     totalSubmissions: 0,
+    totalAssignments: 0,
+    totalTests: 0,
+    totalTestAttempts: 0,
   });
 
   const [formData, setFormData] = useState({
@@ -671,6 +674,9 @@ export default function AdminPage() {
           totalTeachers: data.totalTeachers || 0,
           totalStudents: data.totalStudents || 0,
           totalSubmissions: data.totalSubmissions || 0,
+          totalAssignments: data.totalAssignments || 0,
+          totalTests: data.totalTests || 0,
+          totalTestAttempts: data.totalTestAttempts || 0,
         });
       } else {
         setError(data.message || 'Failed to load dashboard stats');
@@ -696,9 +702,10 @@ export default function AdminPage() {
         if (value === 'STUDENT') {
           updated.subject = '';
         } else if (value === 'TEACHER') {
-          updated.course = '';
-          updated.className = '';
-          updated.section = '';
+          // Teachers also need course, className, and section now
+          // updated.course = '';
+          // updated.className = '';
+          // updated.section = '';
         } else if (value === 'ADMIN') {
           updated.course = '';
           updated.className = '';
@@ -740,10 +747,10 @@ export default function AdminPage() {
     }
 
     if (
-      formData.role === 'STUDENT' &&
+      (formData.role === 'STUDENT' || formData.role === 'TEACHER') &&
       (!formData.course || !formData.className || !formData.section)
     ) {
-      setError('Course, Class, and Section are required for students');
+      setError(`Course, Class, and Section are required for ${formData.role.toLowerCase()}s`);
       setSubmitting(false);
       return;
     }
@@ -907,34 +914,21 @@ export default function AdminPage() {
           </div>
         )}
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-white rounded-2xl shadow p-6">
-            <p className="text-sm text-slate-500">Total Students</p>
-            <h2 className="text-4xl font-bold text-slate-900 mt-2">
-              {stats.totalStudents}
-            </h2>
-          </div>
-
-          <div className="bg-white rounded-2xl shadow p-6">
-            <p className="text-sm text-slate-500">Total Teachers</p>
-            <h2 className="text-4xl font-bold text-slate-900 mt-2">
-              {stats.totalTeachers}
-            </h2>
-          </div>
-
-          <div className="bg-white rounded-2xl shadow p-6">
-            <p className="text-sm text-slate-500">Total Submissions</p>
-            <h2 className="text-4xl font-bold text-slate-900 mt-2">
-              {stats.totalSubmissions}
-            </h2>
-          </div>
-
-          <div className="bg-white rounded-2xl shadow p-6">
-            <p className="text-sm text-slate-500">Courses</p>
-            <h2 className="text-4xl font-bold text-slate-900 mt-2">
-              {Object.keys(stats.studentsByCourse || {}).length}
-            </h2>
-          </div>
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[
+            { label: 'Students', value: stats.totalStudents, color: 'border-l-blue-500' },
+            { label: 'Teachers', value: stats.totalTeachers, color: 'border-l-emerald-500' },
+            { label: 'Submissions', value: stats.totalSubmissions, color: 'border-l-violet-500' },
+            { label: 'Assignments', value: stats.totalAssignments, color: 'border-l-amber-500' },
+            { label: 'Tests', value: stats.totalTests, color: 'border-l-pink-500' },
+            { label: 'Test Attempts', value: stats.totalTestAttempts, color: 'border-l-cyan-500' },
+            { label: 'Courses', value: Object.keys(stats.studentsByCourse || {}).length, color: 'border-l-slate-500' },
+          ].map((card) => (
+            <div key={card.label} className={`bg-white rounded-xl shadow p-5 border-l-4 ${card.color}`}>
+              <p className="text-sm text-slate-500">{card.label}</p>
+              <h2 className="text-3xl font-bold text-slate-900 mt-1">{card.value}</h2>
+            </div>
+          ))}
         </div>
 
         {Object.keys(stats.studentsByCourse || {}).length > 0 && (
@@ -1031,7 +1025,7 @@ export default function AdminPage() {
                 />
               </div>
 
-              {formData.role === 'STUDENT' && (
+              {(formData.role === 'STUDENT' || formData.role === 'TEACHER') && (
                 <>
                   <div>
                     <label className="block text-sm font-medium mb-1">Course *</label>

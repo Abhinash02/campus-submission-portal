@@ -327,6 +327,8 @@ import mongoose from 'mongoose';
 import connectDB from '@/mongodb/db';
 import Submission from '@/models/submission';
 import User from '@/models/user';
+import Assignment from '@/models/assignment';
+import { getWindowStatus } from '@/lib/timeWindow';
 
 export const dynamic = 'force-dynamic';
 
@@ -344,53 +346,249 @@ export async function PUT(req, { params }) {
     }
 
     const body = await req.json();
+    const role = String(body.role || '').toUpperCase();
 
-    const teacherId = String(body.teacherId || '').trim();
-    const status = String(body.status || '').trim();
-    const feedback = String(body.feedback || '').trim();
-    const reviewedBy = String(body.reviewedBy || '').trim();
-    const marks = Number(body.marks);
+    if (role === 'STUDENT') {
+      const studentId = String(body.studentId || '').trim();
+      if (!studentId || !mongoose.Types.ObjectId.isValid(studentId)) {
+        return NextResponse.json(
+          { success: false, message: 'Valid studentId is required' },
+          { status: 400 }
+        );
+      }
 
-    if (!teacherId || !mongoose.Types.ObjectId.isValid(teacherId)) {
+      const student = await User.findById(studentId).lean();
+      if (!student) {
+        return NextResponse.json(
+          { success: false, message: 'Student not found' },
+          { status: 404 }
+        );
+      }
+
+      if (String(student.role || '').toUpperCase() !== 'STUDENT') {
+        return NextResponse.json(
+          { success: false, message: 'Access denied. Invalid student account' },
+          { status: 403 }
+        );
+      }
+
+      const submission = await Submission.findById(submissionId);
+      if (!submission) {
+        return NextResponse.json(
+          { success: false, message: 'Submission not found' },
+          { status: 404 }
+        );
+      }
+
+      if (String(submission.studentId) !== studentId) {
+        return NextResponse.json(
+          { success: false, message: 'Access denied. You can only update your own submissions' },
+          { status: 403 }
+        );
+      }
+
+      if (submission.status === 'Checked') {
+        return NextResponse.json(
+          { success: false, message: 'Cannot edit submission details after it has been checked by the teacher' },
+          { status: 403 }
+        );
+      }
+
+      if (submission.assignmentId) {
+        const assignment = await Assignment.findById(submission.assignmentId).lean();
+        if (assignment) {
+          if (!assignment.isActive) {
+            return NextResponse.json(
+              { success: false, message: 'The associated assignment is no longer active' },
+              { status: 403 }
+            );
+          }
+          const window = getWindowStatus(assignment.openAt, assignment.closeAt);
+          if (!window.open) {
+            return NextResponse.json(
+              { success: false, message: `Submission window is closed: ${window.message}` },
+              { status: 403 }
+            );
+          }
+        }
+      }
+
+      // Update fields
+      if (body.title !== undefined) {
+        const titleVal = String(body.title || '').trim();
+        if (!titleVal) {
+          return NextResponse.json(
+            { success: false, message: 'Title is required' },
+            { status: 400 }
+          );
+        }
+        submission.title = titleVal;
+      }
+      if (body.subject !== undefined) {
+        submission.subject = String(body.subject || '').trim();
+      }
+      if (body.description !== undefined) {
+        submission.description = String(body.description || '').trim();
+      }
+      if (body.fileName !== undefined && body.fileUrl !== undefined) {
+        submission.fileName = String(body.fileName || '').trim();
+        submission.fileUrl = String(body.fileUrl || '').trim();
+      }
+
+      await submission.save();
+
       return NextResponse.json(
-        { success: false, message: 'Valid teacherId is required' },
+        {
+          success: true,
+          message: 'Submission updated successfully',
+          assignment: submission,
+        },
+        { status: 200 }
+      );
+    } else {
+      // Teacher logic
+      const teacherId = String(body.teacherId || '').trim();
+      const status = String(body.status || '').trim();
+      const feedback = String(body.feedback || '').trim();
+      const reviewedBy = String(body.reviewedBy || '').trim();
+      const marks = Number(body.marks);
+
+      if (!teacherId || !mongoose.Types.ObjectId.isValid(teacherId)) {
+        return NextResponse.json(
+          { success: false, message: 'Valid teacherId is required' },
+          { status: 400 }
+        );
+      }
+
+      const allowedStatuses = ['Submitted', 'Under Review', 'Checked'];
+      if (!allowedStatuses.includes(status)) {
+        return NextResponse.json(
+          { success: false, message: 'Invalid status value' },
+          { status: 400 }
+        );
+      }
+
+      if (Number.isNaN(marks) || marks < 0 || marks > 100) {
+        return NextResponse.json(
+          { success: false, message: 'Marks must be between 0 and 100' },
+          { status: 400 }
+        );
+      }
+
+      const teacher = await User.findById(teacherId).lean();
+
+      if (!teacher) {
+        return NextResponse.json(
+          { success: false, message: 'Teacher not found' },
+          { status: 404 }
+        );
+      }
+
+      if (String(teacher.role || '').toUpperCase() !== 'TEACHER') {
+        return NextResponse.json(
+          { success: false, message: 'Access denied. Only teachers can update submissions' },
+          { status: 403 }
+        );
+      }
+
+      const submission = await Submission.findById(submissionId);
+
+      if (!submission) {
+        return NextResponse.json(
+          { success: false, message: 'Submission not found' },
+          { status: 404 }
+        );
+      }
+
+      if (!submission.teacherId) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: 'This submission is not assigned to any teacher',
+          },
+          { status: 403 }
+        );
+      }
+
+      if (String(submission.teacherId) !== teacherId) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: 'Access denied. You can update only your own assigned submissions',
+          },
+          { status: 403 }
+        );
+      }
+
+      submission.status = status;
+      submission.marks = marks;
+      submission.feedback = feedback;
+      submission.reviewedBy = reviewedBy || teacher.name || '';
+      submission.teacherName = submission.teacherName || teacher.name || '';
+      submission.teacherLoginId = submission.teacherLoginId || teacher.loginId || '';
+
+      await submission.save();
+
+      return NextResponse.json(
+        {
+          success: true,
+          message: 'Submission updated successfully',
+          assignment: submission,
+        },
+        { status: 200 }
+      );
+    }
+  } catch (error) {
+    console.error('UPDATE SUBMISSION ERROR:', error);
+    return NextResponse.json(
+      {
+        success: false,
+        message: error?.message || 'Failed to update submission',
+      },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(req, { params }) {
+  try {
+    await connectDB();
+
+    const submissionId = params?.id;
+
+    if (!submissionId || !mongoose.Types.ObjectId.isValid(submissionId)) {
+      return NextResponse.json(
+        { success: false, message: 'Invalid submission ID' },
         { status: 400 }
       );
     }
 
-    const allowedStatuses = ['Submitted', 'Under Review', 'Checked'];
-    if (!allowedStatuses.includes(status)) {
+    const { searchParams } = new URL(req.url);
+    const studentId = String(searchParams.get('studentId') || '').trim();
+
+    if (!studentId || !mongoose.Types.ObjectId.isValid(studentId)) {
       return NextResponse.json(
-        { success: false, message: 'Invalid status value' },
+        { success: false, message: 'Valid studentId is required' },
         { status: 400 }
       );
     }
 
-    if (Number.isNaN(marks) || marks < 0 || marks > 100) {
+    const student = await User.findById(studentId).lean();
+    if (!student) {
       return NextResponse.json(
-        { success: false, message: 'Marks must be between 0 and 100' },
-        { status: 400 }
-      );
-    }
-
-    const teacher = await User.findById(teacherId).lean();
-
-    if (!teacher) {
-      return NextResponse.json(
-        { success: false, message: 'Teacher not found' },
+        { success: false, message: 'Student not found' },
         { status: 404 }
       );
     }
 
-    if (String(teacher.role || '').toUpperCase() !== 'TEACHER') {
+    if (String(student.role || '').toUpperCase() !== 'STUDENT') {
       return NextResponse.json(
-        { success: false, message: 'Access denied. Only teachers can update submissions' },
+        { success: false, message: 'Access denied. Invalid student account' },
         { status: 403 }
       );
     }
 
     const submission = await Submission.findById(submissionId);
-
     if (!submission) {
       return NextResponse.json(
         { success: false, message: 'Submission not found' },
@@ -398,49 +596,54 @@ export async function PUT(req, { params }) {
       );
     }
 
-    if (!submission.teacherId) {
+    if (String(submission.studentId) !== studentId) {
       return NextResponse.json(
-        {
-          success: false,
-          message: 'This submission is not assigned to any teacher',
-        },
+        { success: false, message: 'Access denied. You can only delete your own submissions' },
         { status: 403 }
       );
     }
 
-    if (String(submission.teacherId) !== teacherId) {
+    if (submission.status === 'Checked') {
       return NextResponse.json(
-        {
-          success: false,
-          message: 'Access denied. You can update only your own assigned submissions',
-        },
+        { success: false, message: 'Cannot delete submission after it has been checked by the teacher' },
         { status: 403 }
       );
     }
 
-    submission.status = status;
-    submission.marks = marks;
-    submission.feedback = feedback;
-    submission.reviewedBy = reviewedBy || teacher.name || '';
-    submission.teacherName = submission.teacherName || teacher.name || '';
-    submission.teacherLoginId = submission.teacherLoginId || teacher.loginId || '';
+    if (submission.assignmentId) {
+      const assignment = await Assignment.findById(submission.assignmentId).lean();
+      if (assignment) {
+        if (!assignment.isActive) {
+          return NextResponse.json(
+            { success: false, message: 'The associated assignment is no longer active' },
+            { status: 403 }
+          );
+        }
+        const window = getWindowStatus(assignment.openAt, assignment.closeAt);
+        if (!window.open) {
+          return NextResponse.json(
+            { success: false, message: `Submission window is closed: ${window.message}` },
+            { status: 403 }
+          );
+        }
+      }
+    }
 
-    await submission.save();
+    await Submission.findByIdAndDelete(submissionId);
 
     return NextResponse.json(
       {
         success: true,
-        message: 'Submission updated successfully',
-        assignment: submission,
+        message: 'Submission deleted successfully',
       },
       { status: 200 }
     );
   } catch (error) {
-    console.error('UPDATE SUBMISSION ERROR:', error);
+    console.error('DELETE SUBMISSION ERROR:', error);
     return NextResponse.json(
       {
         success: false,
-        message: error?.message || 'Failed to update submission',
+        message: error?.message || 'Failed to delete submission',
       },
       { status: 500 }
     );

@@ -1,11 +1,15 @@
 import { NextResponse } from 'next/server';
 import mongoose from 'mongoose';
 import connectDB from '@/mongodb/db';
-import Assignment from '@/models/assignment';
+import Test from '@/models/test';
 import User from '@/models/user';
 import { getWindowStatus } from '@/lib/timeWindow';
 
 export const dynamic = 'force-dynamic';
+
+function calcTotalMarks(questions) {
+  return (questions || []).reduce((sum, q) => sum + (q.marks || 1), 0);
+}
 
 export async function GET(req) {
   try {
@@ -36,18 +40,22 @@ export async function GET(req) {
       if (filters.length) query.$and = filters;
     }
 
-    const assignments = await Assignment.find(query).sort({ closeAt: 1 }).lean();
+    const tests = await Test.find(query).sort({ closeAt: 1 }).lean();
     const now = new Date();
 
-    const withStatus = assignments.map((a) => ({
-      ...a,
-      window: getWindowStatus(a.openAt, a.closeAt, now),
-    }));
+    const safeTests = tests.map((t) => {
+      const { questions, ...rest } = t;
+      return {
+        ...rest,
+        questionCount: questions?.length || 0,
+        window: getWindowStatus(t.openAt, t.closeAt, now),
+      };
+    });
 
-    return NextResponse.json({ success: true, assignments: withStatus });
+    return NextResponse.json({ success: true, tests: safeTests });
   } catch (error) {
-    console.error('GET ASSIGNMENTS ERROR:', error);
-    return NextResponse.json({ success: false, message: 'Failed to fetch assignments' }, { status: 500 });
+    console.error('GET TESTS ERROR:', error);
+    return NextResponse.json({ success: false, message: 'Failed to fetch tests' }, { status: 500 });
   }
 }
 
@@ -59,9 +67,9 @@ export async function POST(req) {
     const teacherId = String(body.teacherId || '').trim();
     const title = String(body.title || '').trim();
     const subject = String(body.subject || '').trim();
-    const description = String(body.description || '').trim();
     const openAt = body.openAt;
     const closeAt = body.closeAt;
+    const questions = body.questions || [];
     const course = String(body.course || '').trim();
     const className = String(body.className || '').trim();
     const section = String(body.section || '').trim();
@@ -73,11 +81,20 @@ export async function POST(req) {
       );
     }
 
-    if (new Date(closeAt) <= new Date(openAt)) {
-      return NextResponse.json(
-        { success: false, message: 'Close time must be after open time' },
-        { status: 400 }
-      );
+    if (!questions.length) {
+      return NextResponse.json({ success: false, message: 'Add at least one question' }, { status: 400 });
+    }
+
+    for (const q of questions) {
+      if (!q.text?.trim() || !q.options?.length || q.correctIndex === undefined) {
+        return NextResponse.json(
+          { success: false, message: 'Each question needs text, options and a correct answer' },
+          { status: 400 }
+        );
+      }
+      if (q.correctIndex < 0 || q.correctIndex >= q.options.length) {
+        return NextResponse.json({ success: false, message: 'Invalid correct answer index' }, { status: 400 });
+      }
     }
 
     const teacher = await User.findById(teacherId).lean();
@@ -85,12 +102,20 @@ export async function POST(req) {
       return NextResponse.json({ success: false, message: 'Invalid teacher' }, { status: 404 });
     }
 
-    const assignment = await Assignment.create({
+    const cleanedQuestions = questions.map((q) => ({
+      text: q.text.trim(),
+      options: q.options.map((o) => String(o).trim()).filter(Boolean),
+      correctIndex: Number(q.correctIndex),
+      marks: Number(q.marks) || 1,
+    }));
+
+    const test = await Test.create({
       teacherId: teacher._id,
       teacherName: teacher.name || '',
       title,
       subject: subject || teacher.subject || '',
-      description,
+      questions: cleanedQuestions,
+      totalMarks: calcTotalMarks(cleanedQuestions),
       openAt: new Date(openAt),
       closeAt: new Date(closeAt),
       course,
@@ -98,9 +123,9 @@ export async function POST(req) {
       section,
     });
 
-    return NextResponse.json({ success: true, assignment }, { status: 201 });
+    return NextResponse.json({ success: true, test }, { status: 201 });
   } catch (error) {
-    console.error('CREATE ASSIGNMENT ERROR:', error);
-    return NextResponse.json({ success: false, message: 'Failed to create assignment' }, { status: 500 });
+    console.error('CREATE TEST ERROR:', error);
+    return NextResponse.json({ success: false, message: 'Failed to create test' }, { status: 500 });
   }
 }

@@ -93,6 +93,11 @@ const SubmissionSchema = new mongoose.Schema(
       default: '',
       trim: true,
     },
+    assignmentId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Assignment',
+      default: null,
+    },
   },
   { timestamps: true }
 );

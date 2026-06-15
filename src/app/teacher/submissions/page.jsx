@@ -436,10 +436,9 @@ export default function TeacherSubmissionsPage() {
                               href={item.fileUrl}
                               target="_blank"
                               rel="noopener noreferrer"
-                              download={item.fileName || 'submission.pdf'}
                               className="inline-flex w-fit items-center justify-center rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700"
                             >
-                              Download PDF
+                              View File ↗
                             </a>
                           ) : (
                             <button

@@ -213,9 +213,9 @@ export async function POST(req) {
       password,
       role,
       email,
-      course: role === 'STUDENT' ? course : '',
-      className: role === 'STUDENT' ? className : '',
-      section: role === 'STUDENT' ? section : '',
+      course: (role === 'STUDENT' || role === 'TEACHER') ? course : '',
+      className: (role === 'STUDENT' || role === 'TEACHER') ? className : '',
+      section: (role === 'STUDENT' || role === 'TEACHER') ? section : '',
       subject: role === 'TEACHER' ? subject : '',
       createdBy,
     });

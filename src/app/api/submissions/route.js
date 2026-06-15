@@ -454,7 +454,9 @@ import { NextResponse } from 'next/server';
 import mongoose from 'mongoose';
 import connectDB from '@/mongodb/db';
 import Submission from '@/models/submission';
+import Assignment from '@/models/assignment';
 import User from '@/models/user';
+import { getWindowStatus } from '@/lib/timeWindow';
 
 export const dynamic = 'force-dynamic';
 
@@ -670,6 +672,7 @@ export async function POST(req) {
     const className = String(body.className || '').trim();
     const courseName = String(body.courseName || '').trim();
     const section = String(body.section || '').trim();
+    const assignmentId = String(body.assignmentId || '').trim();
 
     if (
       !studentId ||
@@ -735,6 +738,23 @@ export async function POST(req) {
       );
     }
 
+    if (assignmentId) {
+      if (!mongoose.Types.ObjectId.isValid(assignmentId)) {
+        return NextResponse.json({ success: false, message: 'Invalid assignmentId' }, { status: 400 });
+      }
+      const assignment = await Assignment.findById(assignmentId).lean();
+      if (!assignment || !assignment.isActive) {
+        return NextResponse.json({ success: false, message: 'Assignment not found' }, { status: 404 });
+      }
+      const window = getWindowStatus(assignment.openAt, assignment.closeAt);
+      if (!window.open) {
+        return NextResponse.json({ success: false, message: window.message }, { status: 403 });
+      }
+      if (String(assignment.teacherId) !== String(teacher._id)) {
+        return NextResponse.json({ success: false, message: 'Assignment does not belong to this teacher' }, { status: 400 });
+      }
+    }
+
     const submission = await Submission.create({
       studentId: student._id,
       studentName: studentName || student.name || '',
@@ -754,6 +774,7 @@ export async function POST(req) {
       marks: 0,
       feedback: '',
       reviewedBy: '',
+      assignmentId: assignmentId || null,
     });
 
     return NextResponse.json(
